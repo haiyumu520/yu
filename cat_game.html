@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>貓咪便便達人 - 進化版</title>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #fdf5e6;
+            font-family: "Microsoft JhengHei", sans-serif;
+            user-select: none;
+        }
+
+        #game-area {
+            position: relative;
+            width: 100vw; height: 100vh;
+            background: linear-gradient(90deg, #e6ccb2 0px, #e6ccb2 98px, #d4a373 100px);
+            background-size: 100px 100%;
+        }
+
+        #score-board {
+            position: absolute; top: 20px; left: 20px;
+            font-size: 24px; background: rgba(255, 255, 255, 0.9);
+            padding: 10px 25px; border-radius: 50px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 100;
+        }
+
+        #litter-box {
+            position: absolute; bottom: 40px; right: 40px;
+            width: 160px; height: 100px;
+            background-color: #bdc3c7; border: 10px solid #95a5a6;
+            border-radius: 20px; display: flex;
+            justify-content: center; align-items: center;
+            font-weight: bold; color: #7f8c8d;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        #cat {
+            position: absolute; font-size: 70px; cursor: grab;
+            z-index: 50; width: 80px; height: 80px;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .poop {
+            position: absolute; font-size: 45px; cursor: pointer;
+            z-index: 40; width: 60px; height: 60px;
+            display: flex; justify-content: center; align-items: center;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 飛向垃圾桶的動畫 */
+        }
+
+        /* 愛心動畫 */
+        .heart {
+            position: absolute;
+            font-size: 30px;
+            color: #e74c3c;
+            z-index: 60;
+            pointer-events: none; /* 讓愛心不影響點擊 */
+            animation: heartUp 1s ease-out forwards;
+        }
+
+        @keyframes heartUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        #congrats {
+            display: none; position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 40px; border-radius: 20px;
+            text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.5); z-index: 1000;
+        }
+
+        button {
+            padding: 10px 25px; font-size: 18px; cursor: pointer;
+            border-radius: 10px; border: none; background: #e67e22; color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-area">
+    <div id="score-board">✨ 清理進度: <span id="score">0</span> / 5</div>
+    <div id="litter-box" id="bin">🗑️ 貓砂盆</div>
+    <div id="cat" style="left: 150px; top: 150px;">🐱</div>
+</div>
+
+<div id="congrats">
+    <h1>🏆 恭喜成為超級便便達人！</h1>
+    <button onclick="location.reload()">再玩一次</button>
+</div>
+
+<script>
+    const cat = document.getElementById('cat');
+    const gameArea = document.getElementById('game-area');
+    const scoreSpan = document.getElementById('score');
+    const litterBox = document.getElementById('litter-box');
+
+    let score = 0;
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+    let walkTimer;
+
+    // --- 貓咪自動走路 ---
+    function autoWalk() {
+        if (isDragging) return;
+        const maxX = window.innerWidth - 100;
+        const maxY = window.innerHeight - 100;
+        cat.style.transition = "left 3s ease-in-out, top 3s ease-in-out";
+        cat.style.left = Math.random() * maxX + 'px';
+        cat.style.top = Math.random() * maxY + 'px';
+    }
+    walkTimer = setInterval(autoWalk, 4000);
+
+    // --- 貓咪互動邏輯 ---
+    cat.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        cat.style.transition = "none";
+        offset.x = e.clientX - cat.offsetLeft;
+        offset.y = e.clientY - cat.offsetTop;
+
+        // 點擊貓咪產生愛心
+        createHeart(e.clientX, e.clientY);
+
+        const onMouseMove = (ev) => {
+            cat.style.left = (ev.clientX - offset.x) + 'px';
+            cat.style.top = (ev.clientY - offset.y) + 'px';
+        };
+
+        const onMouseUp = () => {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            // 每次拖曳放開後，隨機大一個便 (或是你可以改成點擊才大)
+            dropPoop(parseInt(cat.style.left), parseInt(cat.style.top));
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+
+    // --- 產生愛心特效 ---
+    function createHeart(x, y) {
+        for(let i=0; i<3; i++) { // 一次噴三個
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.innerHTML = '❤️';
+            heart.style.left = (x - 15 + (Math.random()*30)) + 'px';
+            heart.style.top = (y - 30) + 'px';
+            gameArea.appendChild(heart);
+            setTimeout(() => heart.remove(), 1000);
+        }
+    }
+
+    // --- 大便邏輯 ---
+    function dropPoop(x, y) {
+        const poop = document.createElement('div');
+        poop.className = 'poop';
+        poop.innerHTML = '💩';
+        poop.style.left = x + 'px';
+        poop.style.top = (y + 30) + 'px';
+        
+        // 點兩下自動移位到垃圾桶
+        poop.addEventListener('dblclick', () => {
+            moveToLitter(poop);
+        });
+
+        gameArea.appendChild(poop);
+    }
+
+    // --- 自動飛向貓砂盆 ---
+    function moveToLitter(poop) {
+        const binRect = litterBox.getBoundingClientRect();
+        
+        // 飛向貓砂盆中心點
+        poop.style.left = (binRect.left + 50) + 'px';
+        poop.style.top = (binRect.top + 20) + 'px';
+        poop.style.transform = "scale(0.2) rotate(360deg)";
+        poop.style.opacity = "0";
+
+        setTimeout(() => {
+            poop.remove();
+            score++;
+            scoreSpan.innerText = score;
+            if (score >= 5) {
+                document.getElementById('congrats').style.display = 'block';
+            }
+        }, 600); // 動畫結束後移除
+    }
+</script>
+
+</body>
+</html>
